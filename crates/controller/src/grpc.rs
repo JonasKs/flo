@@ -63,6 +63,7 @@ impl FloControllerService {
 
 #[tonic::async_trait]
 impl FloController for FloControllerService {
+  #[tracing::instrument(skip(self, request), fields(request_message = ?request.get_ref()))]
   async fn get_player(
     &self,
     request: Request<GetPlayerRequest>,
@@ -132,6 +133,7 @@ impl FloController for FloControllerService {
     }))
   }
 
+  #[tracing::instrument(skip(self, _request))]
   async fn list_nodes(&self, _request: Request<()>) -> Result<Response<ListNodesReply>, Status> {
     let nodes = self.state.nodes.send(ListNode).await.map_err(Error::from)?;
     Ok(Response::new(ListNodesReply {
@@ -139,6 +141,7 @@ impl FloController for FloControllerService {
     }))
   }
 
+  #[tracing::instrument(skip(self, request), fields(request_message = ?request.get_ref()))]
   async fn list_games(
     &self,
     request: Request<ListGamesRequest>,
@@ -155,16 +158,22 @@ impl FloController for FloControllerService {
     Ok(Response::new(r.pack().map_err(Error::from)?))
   }
 
+  #[tracing::instrument(skip(self, request), fields(request_message = ?request.get_ref()))]
   async fn get_game(
     &self,
     request: Request<GetGameRequest>,
   ) -> Result<Response<GetGameReply>, Status> {
+    let span = tracing::Span::current();
     let game_id = request.into_inner().game_id;
     let game = self
       .state
       .db
-      .exec(move |conn| crate::game::db::get_full(conn, game_id))
-      .await
+      .exec(move |conn| {
+        let _enter = span.enter();
+        crate::game::db::get_full(conn, game_id)
+      }
+      )
+        .await
       .map_err(|e| match e {
         ExecutorError::Task(Error::GameNotFound) => Status::invalid_argument(e.to_string()),
         other => Status::internal(other.to_string()),

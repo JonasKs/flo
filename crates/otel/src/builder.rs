@@ -1,8 +1,23 @@
+use std::fmt::Display;
 use crate::otel::{init_tracing_subscriber, Config, OtelGuard};
 use opentelemetry::KeyValue;
 use opentelemetry_semantic_conventions::attribute::DEPLOYMENT_ENVIRONMENT_NAME;
 use opentelemetry_semantic_conventions::attribute::SERVICE_VERSION;
-use utils::environment::Environment;
+
+#[derive(Debug, Clone)]
+pub enum Environment {
+    Dev,
+    Prod,
+}
+
+impl Display for Environment {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            Environment::Dev => write!(f, "dev"),
+            Environment::Prod => write!(f, "prod"),
+        }
+    }
+}
 
 #[derive(Debug, Default)]
 pub struct OtelBuilder {

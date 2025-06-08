@@ -1,7 +1,7 @@
 [package]
 name = "flo-otel"
 version = "0.1.0"
-authors = ["Jonas Krüger Svensson <jonas-ks@hotmail.com>"]
+authors = ["Jonas Krüger Svensson <jonas-ks@hotmail.com>", "Marco de Abreu"]
 edition = "2021"
 
 [dependencies]
@@ -12,5 +12,5 @@ tracing-subscriber = { version = "0.3", default-features = false, features = ["f
 opentelemetry = { version = "0.29", features = ["trace"] }
 opentelemetry_sdk = { version = "0.29" }
 opentelemetry-semantic-conventions = { version = "0.29.0", features = ["semconv_experimental"]}
-# TODO: Use tonic instead of reqwest
-opentelemetry-otlp = { version = "0.29.0", default-features = false, features = ["trace", "http-proto", "reqwest-blocking-client", "reqwest-rustls"]}
+opentelemetry-otlp = { version = "0.29.0", default-features = false, features = ["trace", "grpc-tonic", "metrics"]}
+tonic = { version = "0.6" }

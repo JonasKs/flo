@@ -10,7 +10,7 @@ use crate::game::state::start::{StartGameCheckAsBot, StartGameCheckAsBotResult};
 use crate::node::messages::ListNode;
 use crate::player::state::ping::GetPlayersPingSnapshot;
 use crate::player::{PlayerBanType, PlayerSource, SourceState};
-use crate::state::{ActorMapExt, ControllerStateRef};
+use crate::state::{ActorMapExt, ControllerStateRef, Reload};
 use bs_diesel_utils::executor::ExecutorError;
 use chrono::{DateTime, Utc};
 use flo_grpc::controller::flo_controller_server::*;
@@ -171,9 +171,8 @@ impl FloController for FloControllerService {
       .exec(move |conn| {
         let _enter = span.enter();
         crate::game::db::get_full(conn, game_id)
-      }
-      )
-        .await
+      })
+      .await
       .map_err(|e| match e {
         ExecutorError::Task(Error::GameNotFound) => Status::invalid_argument(e.to_string()),
         other => Status::internal(other.to_string()),
@@ -557,6 +556,7 @@ impl FloController for FloControllerService {
     Ok(Response::new(()))
   }
 
+  #[tracing::instrument(skip(self, _request))]
   async fn reload(&self, _request: Request<()>) -> Result<Response<()>, Status> {
     self.state.reload().await?;
     Ok(Response::new(()))
@@ -595,7 +595,11 @@ impl FloController for FloControllerService {
       .transpose()
       .map_err(Status::internal)?;
     // Because of backwards compatibility in gRPC, we had to mark the field as optional, hence enforce it here
-    let author = params.clone().author.filter(|a| !a.trim().is_empty()).ok_or_else(|| Status::invalid_argument("Author is required"))?;
+    let author = params
+      .clone()
+      .author
+      .filter(|a| !a.trim().is_empty())
+      .ok_or_else(|| Status::invalid_argument("Author is required"))?;
     self
       .state
       .db
